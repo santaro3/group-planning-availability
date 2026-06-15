@@ -324,6 +324,46 @@
       saveVoteBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Save My Availability</span>`;
     }
 
+    // Helper to format date labels (e.g. "Jul 17 - 19, 2026" -> "July 19th, 2026")
+    function formatDisplayDate(label) {
+      const parts = label.split('-');
+      if (parts.length < 2) return label;
+      
+      const endPart = parts[1].trim(); 
+      const endSubparts = endPart.split(',');
+      if (endSubparts.length < 2) return label;
+      
+      const dateStr = endSubparts[0].trim(); 
+      const yearStr = endSubparts[1].trim(); 
+      
+      let monthAbbrev = "";
+      let dayNumStr = "";
+      
+      const dateWords = dateStr.split(' ');
+      if (dateWords.length === 1) {
+        dayNumStr = dateWords[0];
+        monthAbbrev = parts[0].trim().split(' ')[0]; 
+      } else {
+        monthAbbrev = dateWords[0];
+        dayNumStr = dateWords[1];
+      }
+      
+      const months = {
+        "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April",
+        "May": "May", "Jun": "June", "Jul": "July", "Aug": "August",
+        "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December"
+      };
+      const fullMonth = months[monthAbbrev] || monthAbbrev;
+      
+      const dayNum = parseInt(dayNumStr, 10);
+      let suffix = "th";
+      if (dayNum === 1 || dayNum === 21 || dayNum === 31) suffix = "st";
+      else if (dayNum === 2 || dayNum === 22) suffix = "nd";
+      else if (dayNum === 3 || dayNum === 23) suffix = "rd";
+      
+      return `${fullMonth} ${dayNum}${suffix}, ${yearStr}`;
+    }
+
     // Init App
     window.addEventListener("load", checkRoute);
     window.addEventListener("hashchange", checkRoute);
@@ -644,8 +684,7 @@
         row.innerHTML = `
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <h4 class="text-sm font-bold text-white">${opt.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</h4>
-              <span class="text-[10px] text-slate-500 font-semibold tracking-wide">${opt.label.split(' ')[0]} ${opt.label.split(' ').slice(-1)[0]}</span>
+              <h4 class="text-sm font-bold text-white">${formatDisplayDate(opt.label)}</h4>
             </div>
             
             <!-- Triple Toggle Button Pill -->
@@ -850,8 +889,7 @@
         card.innerHTML = `
           <div class="flex justify-between items-start mb-3">
             <div>
-              <h4 class="text-sm font-bold text-white leading-snug">${item.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</h4>
-              <span class="text-[10px] text-slate-500 font-semibold tracking-wide">${item.label.split(' ')[0]}</span>
+              <h4 class="text-sm font-bold text-white leading-snug">${formatDisplayDate(item.label)}</h4>
             </div>
             ${winnerBadge}
           </div>
@@ -894,12 +932,14 @@
         th.className = "px-4 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-slate-400 min-w-[120px] relative";
         
         const isWinner = opt.id === winnerId && highestScore > 0;
+        const displayDate = formatDisplayDate(opt.label);
+        const displayParts = displayDate.split(',');
         
         th.innerHTML = `
           <div class="flex flex-col items-center justify-center">
             ${isWinner ? `<span class="text-[8px] bg-emerald-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full mb-1 uppercase tracking-wider scale-90">Best</span>` : ''}
-            <span class="text-slate-200 leading-snug font-bold">${opt.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</span>
-            <span class="text-[9px] text-slate-500 font-semibold tracking-wide mt-0.5">${opt.label.split(' ')[0]}</span>
+            <span class="text-slate-200 leading-snug font-bold">${displayParts[0]}</span>
+            <span class="text-[9px] text-slate-500 font-semibold tracking-wide mt-0.5">${displayParts[1]?.trim() || ''}</span>
           </div>
         `;
         headerRow.appendChild(th);
