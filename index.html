@@ -324,44 +324,50 @@
       saveVoteBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Save My Availability</span>`;
     }
 
-    // Helper to format date labels (e.g. "Jul 17 - 19, 2026" -> "July 19th, 2026")
+    // Helper to format date labels (e.g. "Jul 17 - 19, 2026" -> "Jul 17th - Jul 19th, 2026")
     function formatDisplayDate(label) {
-      const parts = label.split('-');
+      const parts = label.split(',');
       if (parts.length < 2) return label;
       
-      const endPart = parts[1].trim(); 
-      const endSubparts = endPart.split(',');
-      if (endSubparts.length < 2) return label;
+      const yearStr = parts[1].trim(); 
+      const rangePart = parts[0].trim(); 
       
-      const dateStr = endSubparts[0].trim(); 
-      const yearStr = endSubparts[1].trim(); 
+      const rangeParts = rangePart.split('-');
+      if (rangeParts.length < 2) return label;
       
-      let monthAbbrev = "";
-      let dayNumStr = "";
+      const startPart = rangeParts[0].trim(); 
+      const endPart = rangeParts[1].trim(); 
       
-      const dateWords = dateStr.split(' ');
-      if (dateWords.length === 1) {
-        dayNumStr = dateWords[0];
-        monthAbbrev = parts[0].trim().split(' ')[0]; 
-      } else {
-        monthAbbrev = dateWords[0];
-        dayNumStr = dateWords[1];
+      function getOrdinal(numStr) {
+        const num = parseInt(numStr, 10);
+        let suffix = "th";
+        if (num === 1 || num === 21 || num === 31) suffix = "st";
+        else if (num === 2 || num === 22) suffix = "nd";
+        else if (num === 3 || num === 23) suffix = "rd";
+        return `${num}${suffix}`;
       }
       
-      const months = {
-        "Jan": "January", "Feb": "February", "Mar": "March", "Apr": "April",
-        "May": "May", "Jun": "June", "Jul": "July", "Aug": "August",
-        "Sep": "September", "Oct": "October", "Nov": "November", "Dec": "December"
-      };
-      const fullMonth = months[monthAbbrev] || monthAbbrev;
+      // Friday (Start)
+      const startWords = startPart.split(' ');
+      const startMonthAbbrev = startWords[0];
+      const startDayStr = startWords[1];
+      const startDayFormatted = getOrdinal(startDayStr);
+      const startDisplay = `${startMonthAbbrev} ${startDayFormatted}`;
       
-      const dayNum = parseInt(dayNumStr, 10);
-      let suffix = "th";
-      if (dayNum === 1 || dayNum === 21 || dayNum === 31) suffix = "st";
-      else if (dayNum === 2 || dayNum === 22) suffix = "nd";
-      else if (dayNum === 3 || dayNum === 23) suffix = "rd";
+      // Sunday (End)
+      const endWords = endPart.split(' ');
+      let endDisplay = "";
+      if (endWords.length === 1) {
+        const endDayFormatted = getOrdinal(endWords[0]);
+        endDisplay = `${startMonthAbbrev} ${endDayFormatted}`;
+      } else {
+        const endMonthAbbrev = endWords[0];
+        const endDayStr = endWords[1];
+        const endDayFormatted = getOrdinal(endDayStr);
+        endDisplay = `${endMonthAbbrev} ${endDayFormatted}`;
+      }
       
-      return `${fullMonth} ${dayNum}${suffix}, ${yearStr}`;
+      return `${startDisplay} - ${endDisplay}, ${yearStr}`;
     }
 
     // Init App
@@ -716,7 +722,7 @@
           
           <!-- Specific Option Comment -->
           <input type="text" id="note-${opt.id}" 
-                 placeholder="Add a note for this weekend (e.g. 'Can only do Sat')..." 
+                 placeholder="Optional: Add a note for this weekend (e.g. 'Can only do Sat')..." 
                  value="${currentResp.comment}"
                  class="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all font-medium">
         `;
@@ -933,13 +939,13 @@
         
         const isWinner = opt.id === winnerId && highestScore > 0;
         const displayDate = formatDisplayDate(opt.label);
-        const displayParts = displayDate.split(',');
+        const displayParts = displayDate.split(', ');
         
         th.innerHTML = `
-          <div class="flex flex-col items-center justify-center">
+          <div class="flex flex-col items-center justify-center text-center">
             ${isWinner ? `<span class="text-[8px] bg-emerald-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full mb-1 uppercase tracking-wider scale-90">Best</span>` : ''}
-            <span class="text-slate-200 leading-snug font-bold">${displayParts[0]}</span>
-            <span class="text-[9px] text-slate-500 font-semibold tracking-wide mt-0.5">${displayParts[1]?.trim() || ''}</span>
+            <span class="text-slate-200 leading-snug font-bold text-center">${displayParts[0]}</span>
+            <span class="text-[9px] text-slate-500 font-semibold tracking-wide mt-0.5">${displayParts[1]}</span>
           </div>
         `;
         headerRow.appendChild(th);
