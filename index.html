@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GroupSync | Coordinate Weekend Trips with Friends</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="GroupSync is a free, serverless Doodle-clone designed for groups of friends to easily coordinate weekend trips using Google Sheets.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gradient-to-tr from-slate-950 via-indigo-950 to-slate-900 text-slate-100 min-h-screen relative overflow-x-hidden py-12 px-4">
+
+  <!-- Ambient Background Glows -->
+  <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none"></div>
+  <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-[150px] pointer-events-none"></div>
+
+  <!-- Main Container -->
+  <div class="max-w-4xl mx-auto">
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 glass-panel border border-emerald-500/30 bg-emerald-950/80 text-emerald-300 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300">
+      <i class="fa-solid fa-circle-check text-emerald-400"></i>
+      <span id="toast-message" class="text-sm font-semibold">Availability saved successfully!</span>
+    </div>
+
+    <!-- ==================== STATE 1: LANDING PAGE ==================== -->
+    <div id="landing-state" class="hidden space-y-12">
+      <!-- Hero Header -->
+      <header class="text-center space-y-4 max-w-lg mx-auto py-6">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-emerald-500 flex items-center justify-center shadow-xl shadow-indigo-500/20 mx-auto mb-4">
+          <i class="fa-solid fa-calendar-days text-2xl text-white"></i>
+        </div>
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-emerald-400 bg-clip-text text-transparent">GroupSync</h1>
+        <p class="text-slate-400 text-base leading-relaxed">
+          The easiest way for friend groups to coordinate weekend cabins, beach trips, and getaways. No accounts. No servers. Completely free.
+        </p>
+      </header>
+
+      <!-- Action Box -->
+      <div class="glass-panel rounded-3xl p-8 text-center border border-white/10 relative overflow-hidden shadow-2xl max-w-xl mx-auto">
+        <div class="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-indigo-500 to-emerald-500"></div>
+        <h2 class="text-2xl font-bold tracking-tight text-white mb-3">Plan a Weekend Getaway</h2>
+        <p class="text-slate-400 text-sm mb-6 max-w-xs mx-auto">Create a weekend availability poll, invite your friends, and find the perfect dates in minutes.</p>
+        <a href="create.html" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-bold py-3.5 px-8 rounded-xl transition-all shadow-md shadow-indigo-600/10 active:scale-[0.98]">
+          <span>Create New Poll</span>
+          <i class="fa-solid fa-plus text-xs"></i>
+        </a>
+      </div>
+
+      <!-- Recent Polls Section -->
+      <div class="max-w-xl mx-auto space-y-4">
+        <h3 class="text-lg font-bold tracking-tight text-slate-300 flex items-center gap-2">
+          <i class="fa-solid fa-history text-indigo-400 text-sm"></i>
+          <span>Your Recent Polls</span>
+        </h3>
+        <div id="recent-polls-container" class="space-y-3">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== STATE 2: LOADING SKELETON ==================== -->
+    <div id="loading-state" class="hidden space-y-8 animate-pulse">
+      <div class="space-y-3">
+        <div class="h-8 w-2/3 bg-slate-800 rounded-lg skeleton"></div>
+        <div class="h-4 w-1/3 bg-slate-800 rounded-lg skeleton"></div>
+      </div>
+      
+      <div class="glass-panel rounded-3xl p-6 border border-white/10 space-y-6">
+        <div class="h-6 w-1/4 bg-slate-800 rounded-lg skeleton"></div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div class="h-32 bg-slate-800 rounded-2xl skeleton"></div>
+          <div class="h-32 bg-slate-800 rounded-2xl skeleton"></div>
+          <div class="h-32 bg-slate-800 rounded-2xl skeleton"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== STATE 3: ERROR PANEL ==================== -->
+    <div id="error-state" class="hidden glass-panel rounded-3xl p-8 text-center border border-rose-500/20 max-w-lg mx-auto relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-rose-500"></div>
+      <div class="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto mb-4">
+        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+      </div>
+      <h3 class="text-xl font-bold text-white mb-2">Failed to Load Poll</h3>
+      <p id="error-message" class="text-slate-400 text-sm mb-6 max-w-xs mx-auto">The link might be broken, or the API URL might be incorrectly configured.</p>
+      <div class="flex gap-3 justify-center">
+        <a href="index.html" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 px-5 rounded-xl border border-slate-700/50 text-sm transition-all">
+          Home
+        </a>
+        <button id="retry-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition-all flex items-center gap-2">
+          <i class="fa-solid fa-arrows-rotate text-xs"></i>
+          <span>Retry</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== STATE 4: POLL VOTING & RESULTS DASHBOARD ==================== -->
+    <div id="poll-state" class="hidden space-y-8">
+      
+      <!-- Back to Dashboard / Poll Title -->
+      <header class="flex items-center justify-between gap-4 flex-wrap border-b border-slate-800/80 pb-6">
+        <div>
+          <a href="index.html" class="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-indigo-400 transition-colors mb-2">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Dashboard</span>
+          </a>
+          <h1 id="poll-title" class="text-3xl font-extrabold tracking-tight text-white">Loading Trip...</h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs px-3 py-1 bg-indigo-950/45 text-indigo-300 rounded-full border border-indigo-500/20 font-semibold" id="total-voters-badge">
+            0 responses
+          </span>
+          <button id="share-poll-btn" class="bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700/50 p-2.5 rounded-xl transition-all text-xs flex items-center gap-1.5 font-bold" title="Copy Shareable Link">
+            <i class="fa-solid fa-share-nodes"></i>
+            <span class="hidden sm:inline">Copy Link</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Columns: Vote Panel & Real-time Heatmap -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Voting Panel (7 cols) -->
+        <section class="lg:col-span-7 space-y-6">
+          <div class="glass-panel rounded-3xl p-6 border border-white/10 shadow-xl relative overflow-hidden">
+            <div class="absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-indigo-500 to-indigo-600"></div>
+            
+            <h2 class="text-lg font-bold tracking-tight text-white mb-5 flex items-center gap-2">
+              <i class="fa-solid fa-user-check text-indigo-400 text-sm"></i>
+              <span>Save Your Availability</span>
+            </h2>
+
+            <form id="vote-form" class="space-y-6">
+              
+              <!-- Custom Glassmorphic Name Selector Dropdown -->
+              <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-2">Select Your Name</label>
+                
+                <div class="relative" id="custom-dropdown-container">
+                  <!-- Trigger Button -->
+                  <button type="button" id="dropdown-trigger" 
+                          class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-left text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all font-medium flex justify-between items-center">
+                    <span id="dropdown-selected-name" class="text-slate-400">Choose a name...</span>
+                    <i class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform duration-300" id="dropdown-chevron"></i>
+                  </button>
+
+                  <!-- Custom Dropdown Menu -->
+                  <div id="dropdown-menu" 
+                       class="absolute z-40 left-0 right-0 mt-2 bg-slate-900/95 border border-slate-700/60 rounded-xl max-h-60 overflow-y-auto hidden shadow-2xl backdrop-blur-md">
+                    <!-- Dynamic Options Populated in JS -->
+                  </div>
+                </div>
+
+                <!-- Custom Name Text Input (Visible only if "+ Add New Name" is selected) -->
+                <div id="custom-name-input-wrapper" class="hidden mt-3 animate-fade-in">
+                  <div class="flex gap-2">
+                    <input type="text" id="custom-name" placeholder="Type your name..." 
+                           class="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition-all font-medium">
+                    <button type="button" id="cancel-custom-name-btn" 
+                            class="bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white px-4 rounded-xl border border-slate-700/50 transition-colors font-medium text-xs shrink-0 flex items-center justify-center gap-1.5" 
+                            title="Go back to list">
+                      <i class="fa-solid fa-arrow-rotate-left"></i>
+                      <span>Back</span>
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Editing Vote Info Badge -->
+                <div id="editing-indicator" class="hidden mt-2 text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
+                  <i class="fa-solid fa-pen-to-square animate-pulse"></i>
+                  <span>You've voted before. Submitting will update your availability.</span>
+                </div>
+              </div>
+
+              <!-- Proposed Weekend Options list -->
+              <div class="space-y-3.5">
+                <label class="block text-sm font-semibold text-slate-300">Your Availability</label>
+                
+                <div class="space-y-3" id="voting-options-list">
+                  <!-- Dynamically populated weekend options with buttons -->
+                </div>
+              </div>
+
+
+              <!-- Save Button -->
+              <button type="submit" id="save-vote-btn" disabled
+                      class="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 disabled:cursor-not-allowed text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>Save My Availability</span>
+              </button>
+            </form>
+          </div>
+        </section>
+
+        <!-- Right: Heat Map Dashboard (5 cols) -->
+        <section class="lg:col-span-5 space-y-6">
+          <div class="glass-panel rounded-3xl p-6 border border-white/10 shadow-xl relative overflow-hidden flex flex-col h-full">
+            <div class="absolute top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-emerald-500 to-indigo-500"></div>
+            
+            <h2 class="text-lg font-bold tracking-tight text-white mb-5 flex items-center gap-2">
+              <i class="fa-solid fa-chart-simple text-emerald-400 text-sm"></i>
+              <span>Live Heat Map</span>
+            </h2>
+
+            <!-- Aggregated Availability Chart -->
+            <div id="heatmap-container" class="space-y-4 flex-1">
+              <!-- Dynamically populated -->
+            </div>
+            
+            <div id="heatmap-empty-state" class="hidden py-8 text-center text-slate-500 text-sm">
+              No votes cast yet. Fill out the form to display analytics!
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Doodle-Style Details Grid Board (Full Width) -->
+      <section class="space-y-4 pt-4">
+        <h2 class="text-xl font-bold tracking-tight text-white flex items-center gap-2.5">
+          <i class="fa-solid fa-border-all text-indigo-400 text-sm"></i>
+          <span>Group Summary Board</span>
+        </h2>
+        
+        <div class="glass-panel rounded-3xl border border-white/10 shadow-xl overflow-hidden">
+          <div class="overflow-x-auto w-full">
+            <table class="w-full text-left border-collapse" id="summary-table">
+              <!-- Dynamically generated headers and row cells -->
+            </table>
+          </div>
+          <div id="table-empty-state" class="hidden py-10 text-center text-slate-500 text-sm border-t border-slate-800/50">
+            <i class="fa-solid fa-users text-2xl text-slate-700 mb-2 block"></i>
+            <span>No votes submitted yet. Be the first to share availability!</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <!-- Script Modules -->
+  <script type="module">
+    import { fetchPollData, apiSubmitVote, isMockMode, getRecentPolls, saveRecentPoll } from './app.js';
+
+    // UI Element Cache
+    const landingState = document.getElementById("landing-state");
+    const loadingState = document.getElementById("loading-state");
+    const errorState = document.getElementById("error-state");
+    const pollState = document.getElementById("poll-state");
+    
+    const pollTitle = document.getElementById("poll-title");
+    const totalVotersBadge = document.getElementById("total-voters-badge");
+    const errorMessage = document.getElementById("error-message");
+    const retryBtn = document.getElementById("retry-btn");
+    const recentPollsContainer = document.getElementById("recent-polls-container");
+
+    const voteForm = document.getElementById("vote-form");
+    const votingOptionsList = document.getElementById("voting-options-list");
+    const saveVoteBtn = document.getElementById("save-vote-btn");
+
+    const customDropdownContainer = document.getElementById("custom-dropdown-container");
+    const dropdownTrigger = document.getElementById("dropdown-trigger");
+    const dropdownSelectedName = document.getElementById("dropdown-selected-name");
+    const dropdownMenu = document.getElementById("dropdown-menu");
+    const dropdownChevron = document.getElementById("dropdown-chevron");
+
+    const customNameInputWrapper = document.getElementById("custom-name-input-wrapper");
+    const customNameInput = document.getElementById("custom-name");
+    const cancelCustomNameBtn = document.getElementById("cancel-custom-name-btn");
+    const editingIndicator = document.getElementById("editing-indicator");
+
+    const heatmapContainer = document.getElementById("heatmap-container");
+    const heatmapEmptyState = document.getElementById("heatmap-empty-state");
+    const summaryTable = document.getElementById("summary-table");
+    const tableEmptyState = document.getElementById("table-empty-state");
+    const sharePollBtn = document.getElementById("share-poll-btn");
+
+    // Session State
+    let activePollId = "";
+    let activePollData = null;
+    let selectedName = ""; 
+    let isCustomName = false;
+    let currentVoterResponses = {}; // maps option.id -> 'yes' | 'ifbe' | 'no'
+
+    // Button styling helpers
+    function setSaveButtonSuccess() {
+      saveVoteBtn.disabled = true;
+      saveVoteBtn.className = "w-full bg-emerald-600 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-emerald-600/10 flex items-center justify-center gap-2";
+      saveVoteBtn.innerHTML = `<i class="fa-solid fa-circle-check pop-checkmark text-sm"></i> <span>Successfully Saved</span>`;
+    }
+
+    function resetSaveButtonActive() {
+      saveVoteBtn.disabled = false;
+      saveVoteBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2";
+      saveVoteBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Save My Availability</span>`;
+    }
+
+    // Init App
+    window.addEventListener("load", checkRoute);
+    window.addEventListener("hashchange", checkRoute);
+
+    function checkRoute() {
+      const hash = window.location.hash;
+      if (hash && hash.length > 1) {
+        activePollId = hash.substring(1);
+        loadPoll(activePollId);
+      } else {
+        showLanding();
+      }
+    }
+
+    // --- LANDING STATE ---
+    function showLanding() {
+      activePollId = "";
+      activePollData = null;
+      
+      // Update browser tab title
+      document.title = "GroupSync | Coordinate Weekend Trips with Friends";
+      
+      pollState.classList.add("hidden");
+      loadingState.classList.add("hidden");
+      errorState.classList.add("hidden");
+      landingState.classList.remove("hidden");
+
+      renderRecentPolls();
+    }
+
+    function renderRecentPolls() {
+      const recent = getRecentPolls();
+      recentPollsContainer.innerHTML = "";
+      
+      if (recent.length === 0) {
+        recentPollsContainer.innerHTML = `
+          <div class="glass-card rounded-2xl p-6 text-center text-slate-500 text-sm border-dashed">
+            No polls visited recently.
+          </div>
+        `;
+        return;
+      }
+
+      recent.forEach(p => {
+        const item = document.createElement("a");
+        item.href = `#${p.id}`;
+        item.className = "glass-card rounded-2xl p-4 flex items-center justify-between hover:border-indigo-500/40 hover:bg-slate-800/40 transition-all cursor-pointer block";
+        
+        const isOrgTag = p.isOrganizer 
+          ? `<span class="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 font-bold">Organizer</span>`
+          : `<span class="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full border border-slate-700 font-bold">Friend</span>`;
+
+        item.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
+              <i class="fa-solid fa-plane-arrival text-sm"></i>
+            </div>
+            <div>
+              <h4 class="text-sm font-bold text-white">${p.title}</h4>
+              <span class="text-[10px] text-slate-500 font-semibold">${new Date(p.timestamp).toLocaleDateString()}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            ${isOrgTag}
+            <i class="fa-solid fa-angle-right text-slate-600 text-xs pl-1"></i>
+          </div>
+        `;
+        recentPollsContainer.appendChild(item);
+      });
+    }
+
+    // --- POLL STATE LOAD ---
+    async function loadPoll(pollId) {
+      landingState.classList.add("hidden");
+      errorState.classList.add("hidden");
+      pollState.classList.add("hidden");
+      loadingState.classList.remove("hidden");
+
+      try {
+        const data = await fetchPollData(pollId);
+        activePollData = data;
+        
+        // Update browser tab title to match trip
+        document.title = `${data.poll.title} | GroupSync`;
+
+        // Render Dashboard
+        renderPollDashboard();
+        
+        loadingState.classList.add("hidden");
+        pollState.classList.remove("hidden");
+      } catch (err) {
+        console.error(err);
+        errorMessage.textContent = err.message || "The requested poll could not be loaded.";
+        loadingState.classList.add("hidden");
+        errorState.classList.remove("hidden");
+      }
+    }
+
+    retryBtn.addEventListener("click", () => {
+      if (activePollId) loadPoll(activePollId);
+    });
+
+    // --- RENDER DASHBOARD FUNCTIONS ---
+    function renderPollDashboard(keepActiveVoter = false) {
+      const poll = activePollData.poll;
+      const votes = activePollData.votes;
+
+      pollTitle.textContent = poll.title;
+      totalVotersBadge.textContent = `${votes.length} response${votes.length === 1 ? '' : 's'}`;
+
+      if (!keepActiveVoter) {
+        // Reset voter states
+        resetVoterSelection();
+      } else {
+        // Keep active voter and update status to success
+        editingIndicator.classList.remove("hidden");
+        setSaveButtonSuccess();
+      }
+
+      // Render Dropdown List
+      renderCustomDropdown();
+
+      // Render Voting Form grid
+      renderVotingGrid();
+
+      // Calculate and Render Heatmap & Summary table
+      renderAnalytics();
+    }
+
+    function resetVoterSelection() {
+      selectedName = "";
+      isCustomName = false;
+      currentVoterResponses = {};
+      
+      // Reset DOM state
+      dropdownSelectedName.textContent = "Choose a name...";
+      dropdownSelectedName.className = "text-slate-400";
+      customNameInput.value = "";
+      customNameInputWrapper.classList.add("hidden");
+      customDropdownContainer.classList.remove("hidden");
+      editingIndicator.classList.add("hidden");
+      resetSaveButtonActive();
+      saveVoteBtn.disabled = true;
+    }
+
+    // --- CUSTOM DROPDOWN MECHANICS ---
+    function renderCustomDropdown() {
+      const poll = activePollData.poll;
+      const votes = activePollData.votes;
+      dropdownMenu.innerHTML = "";
+
+      // List of pre-defined invitee names
+      const invitees = poll.participants || [];
+      
+      // Determine voter statuses
+      const voterMap = {};
+      votes.forEach(v => {
+        voterMap[v.name.toLowerCase()] = true;
+      });
+
+      // Combine invitees and actual voters to list all names in dropdown
+      const allNames = new Set([
+        ...invitees,
+        ...votes.map(v => v.name)
+      ]);
+
+      const sortedNames = Array.from(allNames).sort((a, b) => a.localeCompare(b));
+
+      // Append standard options
+      sortedNames.forEach(name => {
+        const hasVoted = voterMap[name.toLowerCase()] || false;
+        
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "w-full text-left px-4 py-3 text-sm flex justify-between items-center hover:bg-slate-800 transition-colors border-b border-slate-800/40 last:border-0";
+        
+        const statusBadge = hasVoted 
+          ? `<span class="text-[9px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full flex items-center gap-1"><span class="w-1 h-1 rounded-full bg-emerald-400 animate-pulse"></span>Voted</span>`
+          : `<span class="text-[9px] font-bold px-2 py-0.5 bg-slate-800 text-slate-400 border border-slate-700 rounded-full">Pending</span>`;
+        
+        option.innerHTML = `
+          <span class="font-semibold text-slate-200">${name}</span>
+          ${statusBadge}
+        `;
+
+        option.addEventListener("click", () => {
+          selectNameFromDropdown(name, hasVoted);
+        });
+
+        dropdownMenu.appendChild(option);
+      });
+
+      // Append "+ Add Custom Name" option at bottom
+      const customOption = document.createElement("button");
+      customOption.type = "button";
+      customOption.className = "w-full text-left px-4 py-3.5 text-xs text-indigo-400 hover:text-indigo-300 font-bold border-t border-slate-800 flex items-center gap-2 hover:bg-slate-800 transition-colors";
+      customOption.innerHTML = `
+        <i class="fa-solid fa-plus text-[10px]"></i>
+        <span>Add new participant...</span>
+      `;
+      customOption.addEventListener("click", () => {
+        enableCustomNameInput();
+      });
+      dropdownMenu.appendChild(customOption);
+    }
+
+    // Toggle dropdown open/close
+    dropdownTrigger.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isHidden = dropdownMenu.classList.contains("hidden");
+      closeDropdowns();
+      if (isHidden) {
+        dropdownMenu.classList.remove("hidden");
+        dropdownChevron.classList.add("rotate-180");
+      }
+    });
+
+    document.addEventListener("click", () => {
+      closeDropdowns();
+    });
+
+    function closeDropdowns() {
+      dropdownMenu.classList.add("hidden");
+      dropdownChevron.classList.remove("rotate-180");
+    }
+
+    function selectNameFromDropdown(name, hasVoted) {
+      selectedName = name;
+      isCustomName = false;
+      dropdownSelectedName.textContent = name;
+      dropdownSelectedName.className = "text-white font-bold";
+      closeDropdowns();
+      
+      customNameInputWrapper.classList.add("hidden");
+      customDropdownContainer.classList.remove("hidden");
+
+      if (hasVoted) {
+        loadVoterExistingData(name);
+      } else {
+        editingIndicator.classList.add("hidden");
+        // Reset voting cards to default state
+        renderVotingGrid();
+      }
+      
+      resetSaveButtonActive();
+    }
+
+    function enableCustomNameInput() {
+      selectedName = "";
+      isCustomName = true;
+      closeDropdowns();
+      
+      customDropdownContainer.classList.add("hidden");
+      customNameInputWrapper.classList.remove("hidden");
+      editingIndicator.classList.add("hidden");
+      
+      // Clear selections
+      renderVotingGrid();
+      
+      customNameInput.focus();
+      validateCustomNameInput();
+    }
+
+    cancelCustomNameBtn.addEventListener("click", () => {
+      resetVoterSelection();
+    });
+
+    customNameInput.addEventListener("input", validateCustomNameInput);
+
+    function validateCustomNameInput() {
+      if (isCustomName) {
+        const val = customNameInput.value.trim();
+        if (val.length > 0) {
+          selectedName = val;
+          
+          // If typed name exists in votes list, treat as edit!
+          const existingVote = activePollData.votes.find(v => v.name.toLowerCase() === val.toLowerCase());
+          if (existingVote) {
+            loadVoterExistingData(existingVote.name);
+          } else {
+            editingIndicator.classList.add("hidden");
+          }
+          
+          resetSaveButtonActive();
+        } else {
+          selectedName = "";
+          saveVoteBtn.disabled = true;
+          editingIndicator.classList.add("hidden");
+        }
+      }
+    }
+
+    function loadVoterExistingData(name) {
+      const vote = activePollData.votes.find(v => v.name.toLowerCase() === name.toLowerCase());
+      if (vote) {
+        editingIndicator.classList.remove("hidden");
+        currentVoterResponses = { ...vote.responses };
+        renderVotingGrid();
+      }
+    }
+
+    // --- VOTING GRID RENDER ---
+    function renderVotingGrid() {
+      const poll = activePollData.poll;
+      votingOptionsList.innerHTML = "";
+
+      poll.options.forEach((opt) => {
+        // Find existing response or default to 'no'
+        const currentRespRaw = currentVoterResponses[opt.id] || 'no';
+        const currentResp = typeof currentRespRaw === 'string'
+          ? { value: currentRespRaw, comment: '' }
+          : { value: currentRespRaw.value || 'no', comment: currentRespRaw.comment || '' };
+        currentVoterResponses[opt.id] = currentResp; // Make sure it's initialized
+
+        const row = document.createElement("div");
+        row.className = "flex flex-col gap-2.5 p-3 bg-slate-900/40 border border-slate-800/60 rounded-2xl relative overflow-hidden animate-fade-in";
+        
+        row.innerHTML = `
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <h4 class="text-sm font-bold text-white">${opt.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</h4>
+              <span class="text-[10px] text-slate-500 font-semibold tracking-wide">${opt.label.split(' ')[0]} ${opt.label.split(' ').slice(-1)[0]}</span>
+            </div>
+            
+            <!-- Triple Toggle Button Pill -->
+            <div class="flex bg-slate-950/70 p-1 rounded-xl border border-slate-850 shrink-0">
+              
+              <!-- Yes (Available) -->
+              <button type="button" id="btn-yes-${opt.id}"
+                      class="vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentResp.value === 'yes' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}">
+                <i class="fa-solid fa-circle-check text-[10px]"></i>
+                <span>Available</span>
+              </button>
+              
+              <!-- If Need Be (Maybe) -->
+              <button type="button" id="btn-ifbe-${opt.id}"
+                      class="vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentResp.value === 'ifbe' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'}">
+                <i class="fa-solid fa-circle-exclamation text-[10px]"></i>
+                <span>Maybe</span>
+              </button>
+              
+              <!-- No (Unavailable) -->
+              <button type="button" id="btn-no-${opt.id}"
+                      class="vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentResp.value === 'no' ? 'bg-slate-800 text-slate-300' : 'text-slate-500 hover:text-slate-400'}">
+                <i class="fa-solid fa-circle-xmark text-[10px]"></i>
+                <span>No</span>
+              </button>
+              
+            </div>
+          </div>
+          
+          <!-- Specific Option Comment -->
+          <input type="text" id="note-${opt.id}" 
+                 placeholder="Add a note for this weekend (e.g. 'Can only do Sat')..." 
+                 value="${currentResp.comment}"
+                 class="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl px-3.5 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-all font-medium">
+        `;
+
+        // Add Event Listeners for Toggles
+        const btnYes = row.querySelector(`#btn-yes-${opt.id}`);
+        const btnIfbe = row.querySelector(`#btn-ifbe-${opt.id}`);
+        const btnNo = row.querySelector(`#btn-no-${opt.id}`);
+        const noteInput = row.querySelector(`#note-${opt.id}`);
+
+        btnYes.addEventListener("click", () => selectOptionVote(opt.id, 'yes', btnYes, btnIfbe, btnNo));
+        btnIfbe.addEventListener("click", () => selectOptionVote(opt.id, 'ifbe', btnYes, btnIfbe, btnNo));
+        btnNo.addEventListener("click", () => selectOptionVote(opt.id, 'no', btnYes, btnIfbe, btnNo));
+        noteInput.addEventListener("input", (e) => {
+          currentVoterResponses[opt.id].comment = e.target.value.trim();
+          resetSaveButtonActive();
+        });
+
+        votingOptionsList.appendChild(row);
+      });
+    }
+
+    function selectOptionVote(optionId, value, btnYes, btnIfbe, btnNo) {
+      if (typeof currentVoterResponses[optionId] === 'string') {
+        currentVoterResponses[optionId] = { value: value, comment: '' };
+      } else {
+        currentVoterResponses[optionId].value = value;
+      }
+
+      // Update button classes
+      btnYes.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'yes' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}`;
+      btnIfbe.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'ifbe' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'}`;
+      btnNo.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'no' ? 'bg-slate-800 text-slate-300' : 'text-slate-500 hover:text-slate-400'}`;
+
+      resetSaveButtonActive();
+    }
+
+    // --- SUBMIT VOTE ACTION ---
+    voteForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const cleanName = selectedName.trim();
+      if (!cleanName) return;
+
+      const comment = "";
+
+      // Disable button & loading
+      saveVoteBtn.disabled = true;
+      const originalHtml = saveVoteBtn.innerHTML;
+      saveVoteBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-sm"></i> <span>Saving Availability...</span>`;
+
+      try {
+        const data = await apiSubmitVote(activePollId, cleanName, currentVoterResponses, comment);
+        activePollData = data;
+        
+        // Show confirmation toast
+        showToast(`Availability saved for ${cleanName}!`);
+        
+        // Rerender Board, keeping active voter selected
+        renderPollDashboard(true);
+        
+      } catch (err) {
+        alert("Failed to submit availability. Check your connection or API_URL setup. Error: " + err.message);
+        console.error(err);
+        resetSaveButtonActive();
+      }
+    });
+
+    // --- ANALYTICS & GRID TABLE RENDER ---
+    function renderAnalytics() {
+      const poll = activePollData.poll;
+      const votes = activePollData.votes;
+
+      heatmapContainer.innerHTML = "";
+      summaryTable.innerHTML = "";
+
+      if (votes.length === 0) {
+        heatmapEmptyState.classList.remove("hidden");
+        tableEmptyState.classList.remove("hidden");
+        return;
+      }
+
+      heatmapEmptyState.classList.add("hidden");
+      tableEmptyState.classList.add("hidden");
+
+      // 1. Calculate Tally Scores
+      // Yes = 2 pts, Maybe = 1 pt, No = 0 pts
+      const optionsTally = poll.options.map(opt => {
+        let yesCount = 0;
+        let ifbeCount = 0;
+        let noCount = 0;
+
+        votes.forEach(v => {
+          const rawResp = v.responses[opt.id] || 'no';
+          const voteVal = typeof rawResp === 'string' ? rawResp : (rawResp.value || 'no');
+          if (voteVal === 'yes') yesCount++;
+          else if (voteVal === 'ifbe') ifbeCount++;
+          else noCount++;
+        });
+
+        const score = (yesCount * 2) + (ifbeCount * 1);
+        return {
+          id: opt.id,
+          label: opt.label,
+          yes: yesCount,
+          ifbe: ifbeCount,
+          no: noCount,
+          score: score
+        };
+      });
+
+      // Find the winner (highest score, tiebreaker is highest Yes count)
+      let winnerId = "";
+      let highestScore = -1;
+      let highestYes = -1;
+
+      optionsTally.forEach(item => {
+        if (item.score > highestScore) {
+          highestScore = item.score;
+          highestYes = item.yes;
+          winnerId = item.id;
+        } else if (item.score === highestScore) {
+          if (item.yes > highestYes) {
+            highestYes = item.yes;
+            winnerId = item.id;
+          }
+        }
+      });
+
+      // Render Heatmap Tally bars
+      optionsTally.forEach(item => {
+        const isWinner = item.id === winnerId && highestScore > 0;
+        const card = document.createElement("div");
+        card.className = `glass-card rounded-2xl p-4 border relative overflow-hidden transition-all duration-300 ${isWinner ? 'glow-winner border-emerald-500/50 bg-emerald-950/20' : 'border-white/5 bg-white/2'}`;
+
+        const totalVoters = votes.length;
+        const yesPercent = (item.yes / totalVoters) * 100;
+        const ifbePercent = (item.ifbe / totalVoters) * 100;
+        const noPercent = (item.no / totalVoters) * 100;
+
+        const winnerBadge = isWinner
+          ? `<span class="text-[9px] font-bold px-2 py-0.5 bg-emerald-500 text-slate-950 rounded-full flex items-center gap-1.5 uppercase shadow-md shadow-emerald-500/20"><i class="fa-solid fa-trophy"></i>Group Choice</span>`
+          : "";
+
+        // Collect option-specific comments
+        const optionComments = [];
+        votes.forEach(v => {
+          const rawResp = v.responses[item.id];
+          if (rawResp && typeof rawResp !== 'string' && rawResp.comment && rawResp.comment.trim()) {
+            optionComments.push({ name: v.name, comment: rawResp.comment.trim(), value: rawResp.value });
+          }
+        });
+
+        const commentsHtml = optionComments.length > 0
+          ? `<div class="mt-3 pt-2.5 border-t border-slate-800/40 space-y-1">
+               <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1"><i class="fa-regular fa-comment text-[10px]"></i>Weekend Notes</p>
+               ${optionComments.map(c => {
+                 let dotColor = 'bg-slate-650';
+                 if (c.value === 'yes') dotColor = 'bg-emerald-500';
+                 else if (c.value === 'ifbe') dotColor = 'bg-amber-500';
+                 return `<div class="text-[10px] text-slate-300 leading-relaxed flex items-start gap-1.5">
+                   <span class="w-1.5 h-1.5 rounded-full ${dotColor} mt-1.5 shrink-0"></span>
+                   <span class="font-bold text-slate-400 shrink-0">${c.name}:</span>
+                   <span class="italic text-slate-200 select-none">"${c.comment}"</span>
+                 </div>`;
+               }).join('')}
+             </div>`
+          : '';
+
+        card.innerHTML = `
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <h4 class="text-sm font-bold text-white leading-snug">${item.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</h4>
+              <span class="text-[10px] text-slate-500 font-semibold tracking-wide">${item.label.split(' ')[0]}</span>
+            </div>
+            ${winnerBadge}
+          </div>
+          
+          <!-- Progress Bar Tally -->
+          <div class="h-3 w-full bg-slate-950/80 rounded-full overflow-hidden flex border border-slate-850">
+            <div class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full transition-all duration-500" style="width: ${yesPercent}%" title="Available: ${item.yes}"></div>
+            <div class="bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-500" style="width: ${ifbePercent}%" title="Maybe: ${item.ifbe}"></div>
+            <div class="bg-slate-800 h-full transition-all duration-500" style="width: ${noPercent}%" title="No: ${item.no}"></div>
+          </div>
+          
+          <div class="flex items-center justify-between text-[10px] text-slate-400 font-bold mt-2">
+            <div class="flex items-center gap-2">
+              <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>${item.yes} available</span>
+              <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${item.ifbe} maybe</span>
+            </div>
+            <span class="text-slate-500">${item.no} unavailable</span>
+          </div>
+
+          ${commentsHtml}
+        `;
+        heatmapContainer.appendChild(card);
+      });
+
+      // 2. Render Doodle-Style Grid Table
+      // Setup Headers
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headerRow.className = "border-b border-slate-850 bg-slate-950/50";
+
+      // Participant Column
+      const pHeader = document.createElement("th");
+      pHeader.className = "px-4 py-4 text-xs font-extrabold uppercase tracking-wider text-slate-400 w-40";
+      pHeader.textContent = "Friends";
+      headerRow.appendChild(pHeader);
+
+      // Date Option Columns
+      poll.options.forEach(opt => {
+        const th = document.createElement("th");
+        th.className = "px-4 py-4 text-center text-xs font-extrabold uppercase tracking-wider text-slate-400 min-w-[120px] relative";
+        
+        const isWinner = opt.id === winnerId && highestScore > 0;
+        
+        th.innerHTML = `
+          <div class="flex flex-col items-center justify-center">
+            ${isWinner ? `<span class="text-[8px] bg-emerald-500 text-slate-950 font-bold px-1.5 py-0.5 rounded-full mb-1 uppercase tracking-wider scale-90">Best</span>` : ''}
+            <span class="text-slate-200 leading-snug font-bold">${opt.label.replace(/^[A-Za-z]{3}\s\d+\s-\s/, '')}</span>
+            <span class="text-[9px] text-slate-500 font-semibold tracking-wide mt-0.5">${opt.label.split(' ')[0]}</span>
+          </div>
+        `;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      summaryTable.appendChild(thead);
+
+      // Setup Rows for each Friend
+      const tbody = document.createElement("tbody");
+      votes.forEach(vote => {
+        const row = document.createElement("tr");
+        row.className = "border-b border-slate-850/60 hover:bg-slate-900/10 transition-colors";
+
+        // Name cell with tooltip if general comments exist
+        const nameCell = document.createElement("td");
+        nameCell.className = "px-4 py-4 font-bold text-sm text-slate-200";
+        
+        if (vote.comment && vote.comment.trim().length > 0) {
+          nameCell.innerHTML = `
+            <div class="tooltip-container">
+              <span class="border-b border-dashed border-indigo-400/50 hover:text-indigo-300 transition-colors">${vote.name}</span>
+              <i class="fa-regular fa-comment-dots text-indigo-400 ml-1.5 text-xs"></i>
+              
+              <!-- Hover popover -->
+              <div class="tooltip-box bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-2xl text-xs font-medium w-48 text-slate-300 mt-1">
+                <p class="font-bold text-slate-400 mb-0.5 uppercase text-[8px] tracking-wider">General Note from ${vote.name}:</p>
+                <p class="leading-relaxed select-none">"${vote.comment}"</p>
+              </div>
+            </div>
+          `;
+        } else {
+          nameCell.textContent = vote.name;
+        }
+        
+        row.appendChild(nameCell);
+
+        // Vote status cells
+        poll.options.forEach(opt => {
+          const td = document.createElement("td");
+          td.className = "px-4 py-4 text-center";
+          
+          const rawResp = vote.responses[opt.id] || 'no';
+          const val = typeof rawResp === 'string' ? rawResp : (rawResp.value || 'no');
+          const optComment = typeof rawResp === 'string' ? '' : (rawResp.comment || '');
+
+          const tooltipClasses = optComment ? 'tooltip-container cursor-pointer' : '';
+          const commentIndicator = optComment ? `<span class="absolute top-0 right-0 w-2 h-2 bg-indigo-500 rounded-full border border-slate-900" title="Has Note"></span>` : '';
+          
+          if (val === 'yes') {
+            td.innerHTML = `
+              <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 font-bold relative ${tooltipClasses}" title="Available">
+                <i class="fa-solid fa-check text-sm"></i>
+                ${commentIndicator}
+                ${optComment ? `
+                  <div class="tooltip-box bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-2xl text-xs font-medium w-48 text-slate-300">
+                    <p class="font-bold text-slate-400 mb-0.5 uppercase text-[8px] tracking-wider">${vote.name}'s Note:</p>
+                    <p class="leading-relaxed text-left">"${optComment}"</p>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          } else if (val === 'ifbe') {
+            td.innerHTML = `
+              <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-400 font-bold relative ${tooltipClasses}" title="Maybe">
+                <i class="fa-solid fa-circle-exclamation text-sm"></i>
+                ${commentIndicator}
+                ${optComment ? `
+                  <div class="tooltip-box bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-2xl text-xs font-medium w-48 text-slate-300">
+                    <p class="font-bold text-slate-400 mb-0.5 uppercase text-[8px] tracking-wider">${vote.name}'s Note:</p>
+                    <p class="leading-relaxed text-left">"${optComment}"</p>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          } else {
+            td.innerHTML = `
+              <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/20 border border-slate-800 text-slate-600 font-bold relative ${tooltipClasses}" title="Unavailable">
+                <i class="fa-solid fa-xmark text-sm"></i>
+                ${commentIndicator}
+                ${optComment ? `
+                  <div class="tooltip-box bg-slate-900 border border-slate-700 p-2.5 rounded-xl shadow-2xl text-xs font-medium w-48 text-slate-300">
+                    <p class="font-bold text-slate-400 mb-0.5 uppercase text-[8px] tracking-wider">${vote.name}'s Note:</p>
+                    <p class="leading-relaxed text-left">"${optComment}"</p>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }
+          row.appendChild(td);
+        });
+
+        tbody.appendChild(row);
+      });
+
+      // Aggregations Total Row at Bottom
+      const totalsRow = document.createElement("tr");
+      totalsRow.className = "bg-slate-950/35 border-t border-slate-800";
+      
+      const totalLabelCell = document.createElement("td");
+      totalLabelCell.className = "px-4 py-4 font-bold text-xs uppercase tracking-wider text-slate-400";
+      totalLabelCell.textContent = "Total Available";
+      totalsRow.appendChild(totalLabelCell);
+
+      poll.options.forEach(opt => {
+        const tally = optionsTally.find(t => t.id === opt.id);
+        const td = document.createElement("td");
+        td.className = "px-4 py-4 text-center";
+        td.innerHTML = `
+          <div class="flex flex-col items-center">
+            <span class="text-sm font-bold text-white">${tally.yes}</span>
+            <span class="text-[9px] text-slate-500 font-semibold mt-0.5">(${tally.ifbe} maybe)</span>
+          </div>
+        `;
+        totalsRow.appendChild(td);
+      });
+      tbody.appendChild(totalsRow);
+
+      summaryTable.appendChild(tbody);
+    }
+
+    // --- SHARE ACTION ---
+    sharePollBtn.addEventListener("click", async () => {
+      const shareUrl = window.location.href;
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast("Shareable link copied to clipboard!");
+      } catch (err) {
+        console.error("Failed to copy link", err);
+      }
+    });
+
+    // --- TOAST NOTIFICATION UTILITY ---
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      const toastMsg = document.getElementById("toast-message");
+      
+      toastMsg.textContent = message;
+      toast.classList.remove("translate-y-20", "opacity-0", "pointer-events-none");
+      
+      setTimeout(() => {
+        toast.classList.add("translate-y-20", "opacity-0", "pointer-events-none");
+      }, 3000);
+    }
+  </script>
+
+  <!-- Local Security / CORS Warning for file:// Protocol -->
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        const landing = document.getElementById("landing-state");
+        const loading = document.getElementById("loading-state");
+        const error = document.getElementById("error-state");
+        const poll = document.getElementById("poll-state");
+        
+        // If all states are hidden, the ES module script did not run (CORS file:// block)
+        if (landing && landing.classList.contains("hidden") &&
+            loading && loading.classList.contains("hidden") &&
+            error && error.classList.contains("hidden") &&
+            poll && poll.classList.contains("hidden")) {
+          
+          // Create container card
+          const container = document.createElement("div");
+          container.className = "glass-panel p-6 border-amber-500/20 bg-amber-950/15 rounded-2xl text-amber-300 text-sm space-y-4 max-w-xl mx-auto text-left mt-12 animate-fade-in";
+          container.innerHTML = `
+            <div class="flex items-start gap-3.5">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+                <i class="fa-solid fa-circle-exclamation text-lg"></i>
+              </div>
+              <div>
+                <h4 class="font-bold text-white text-base mb-1">Local Browser Security Restriction</h4>
+                <p class="text-slate-300 leading-relaxed text-xs">
+                  You opened this page directly from your computer (using the <code class="bg-slate-950 px-1 py-0.5 rounded font-mono text-[10px] text-amber-400">file://</code> protocol). For security reasons, modern web browsers block JavaScript Module imports on local file pathways.
+                </p>
+                <p class="text-slate-400 leading-relaxed text-xs mt-2 font-medium">
+                  This page will work perfectly out-of-the-box once uploaded to <strong class="text-indigo-300">GitHub Pages</strong>.
+                </p>
+              </div>
+            </div>
+            
+            <div class="pt-3.5 border-t border-slate-800/60 space-y-2.5">
+              <p class="font-semibold text-white text-xs">To test GroupSync locally right now, run a local web server:</p>
+              <div class="space-y-2">
+                <p class="text-[11px] text-slate-400 font-medium">If you have Node.js, run this command in your project directory:</p>
+                <pre class="bg-slate-950 p-3 rounded-xl text-indigo-300 text-[11px] font-mono select-all border border-slate-850">npx serve</pre>
+              </div>
+              <div class="space-y-1.5 pt-1.5">
+                <p class="text-[11px] text-slate-400 font-medium">If you have Python, run this command instead:</p>
+                <pre class="bg-slate-950 p-3 rounded-xl text-indigo-300 text-[11px] font-mono select-all border border-slate-850">python -m http.server 8000</pre>
+              </div>
+            </div>
+          `;
+          document.querySelector(".max-w-4xl").appendChild(container);
+        }
+      }, 800);
+    });
+  </script>
+</body>
+</html>
