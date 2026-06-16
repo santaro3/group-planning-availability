@@ -104,9 +104,9 @@
     </div>
 
     <!-- ==================== STATE 3: ERROR PANEL ==================== -->
-    <div id="error-state" class="hidden glass-panel rounded-3xl p-8 text-center border border-rose-500/20 max-w-lg mx-auto relative overflow-hidden">
-      <div class="absolute top-0 left-0 right-0 h-[3px] bg-rose-500"></div>
-      <div class="w-14 h-14 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto mb-4">
+    <div id="error-state" class="hidden glass-panel rounded-3xl p-8 text-center border border-red-500/20 max-w-lg mx-auto relative overflow-hidden">
+      <div class="absolute top-0 left-0 right-0 h-[3px] bg-red-500"></div>
+      <div class="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center mx-auto mb-4">
         <i class="fa-solid fa-triangle-exclamation text-xl"></i>
       </div>
       <h3 class="text-xl font-bold text-white mb-2">Failed to Load Poll</h3>
@@ -204,7 +204,7 @@
               <div class="space-y-3.5">
                 <label class="block text-sm font-semibold text-slate-300">Your Availability</label>
                 
-                <div class="space-y-3" id="voting-options-list">
+                <div class="space-y-3 relative" id="voting-options-list">
                   <!-- Dynamically populated weekend options with buttons -->
                 </div>
               </div>
@@ -309,6 +309,7 @@
     let activePollData = null;
     let selectedName = ""; 
     let isCustomName = false;
+    let isEditUnlocked = false;
     let currentVoterResponses = {}; // maps option.id -> 'yes' | 'ifbe' | 'no'
 
     // Button styling helpers
@@ -319,6 +320,13 @@
     }
 
     function resetSaveButtonActive() {
+      const hasVoted = selectedName && activePollData && activePollData.votes && activePollData.votes.some(v => v.name.toLowerCase() === selectedName.toLowerCase());
+      if (!selectedName || (hasVoted && !isEditUnlocked)) {
+        saveVoteBtn.disabled = true;
+        saveVoteBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:hover:bg-indigo-600 disabled:cursor-not-allowed text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2";
+        saveVoteBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Save My Availability</span>`;
+        return;
+      }
       saveVoteBtn.disabled = false;
       saveVoteBtn.className = "w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md shadow-indigo-600/10 flex items-center justify-center gap-2";
       saveVoteBtn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Save My Availability</span>`;
@@ -485,6 +493,7 @@
         resetVoterSelection();
       } else {
         // Keep active voter and update status to success
+        isEditUnlocked = true;
         editingIndicator.classList.remove("hidden");
         setSaveButtonSuccess();
       }
@@ -502,6 +511,7 @@
     function resetVoterSelection() {
       selectedName = "";
       isCustomName = false;
+      isEditUnlocked = false;
       currentVoterResponses = {};
       
       // Reset DOM state
@@ -607,8 +617,11 @@
       customDropdownContainer.classList.remove("hidden");
 
       if (hasVoted) {
+        isEditUnlocked = false;
+        editingIndicator.classList.remove("hidden");
         loadVoterExistingData(name);
       } else {
+        isEditUnlocked = true;
         editingIndicator.classList.add("hidden");
         // Reset voting cards to default state
         renderVotingGrid();
@@ -648,14 +661,17 @@
           // If typed name exists in votes list, treat as edit!
           const existingVote = activePollData.votes.find(v => v.name.toLowerCase() === val.toLowerCase());
           if (existingVote) {
+            isEditUnlocked = false;
             loadVoterExistingData(existingVote.name);
           } else {
+            isEditUnlocked = true;
             editingIndicator.classList.add("hidden");
           }
           
           resetSaveButtonActive();
         } else {
           selectedName = "";
+          isEditUnlocked = false;
           saveVoteBtn.disabled = true;
           editingIndicator.classList.add("hidden");
         }
@@ -712,7 +728,7 @@
               
               <!-- No (Unavailable) -->
               <button type="button" id="btn-no-${opt.id}"
-                      class="vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentResp.value === 'no' ? 'bg-slate-800 text-slate-300' : 'text-slate-500 hover:text-slate-400'}">
+                      class="vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${currentResp.value === 'no' ? 'bg-red-500 text-slate-950 shadow-md shadow-red-500/20' : 'text-slate-400 hover:text-white'}">
                 <i class="fa-solid fa-circle-xmark text-[10px]"></i>
                 <span>No</span>
               </button>
@@ -743,6 +759,31 @@
 
         votingOptionsList.appendChild(row);
       });
+
+      // Check if we need to show the lock overlay to prevent accidental overwrites
+      const hasVoted = selectedName && activePollData && activePollData.votes && activePollData.votes.some(v => v.name.toLowerCase() === selectedName.toLowerCase());
+      if (hasVoted && !isEditUnlocked) {
+        const overlay = document.createElement("div");
+        overlay.className = "absolute inset-0 bg-slate-950/75 backdrop-blur-[2px] z-30 flex flex-col items-center justify-center text-center p-6 rounded-2xl border border-slate-800/80 animate-scale-in";
+        overlay.innerHTML = `
+          <div class="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 flex items-center justify-center mb-3">
+            <i class="fa-solid fa-lock text-xl"></i>
+          </div>
+          <h3 class="text-sm font-bold text-white mb-1">Availability Already Saved</h3>
+          <p class="text-xs text-slate-400 max-w-xs mb-4">To prevent accidental overwrites, you must unlock editing to make changes.</p>
+          <button type="button" id="unlock-edit-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-5 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/10 active:scale-[0.98]">
+            <i class="fa-solid fa-pen-to-square"></i>
+            <span>Edit My Availability</span>
+          </button>
+        `;
+        votingOptionsList.appendChild(overlay);
+        
+        overlay.querySelector("#unlock-edit-btn").addEventListener("click", () => {
+          isEditUnlocked = true;
+          renderVotingGrid();
+          resetSaveButtonActive();
+        });
+      }
     }
 
     function selectOptionVote(optionId, value, btnYes, btnIfbe, btnNo) {
@@ -755,7 +796,7 @@
       // Update button classes
       btnYes.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'yes' ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' : 'text-slate-400 hover:text-white'}`;
       btnIfbe.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'ifbe' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20' : 'text-slate-400 hover:text-white'}`;
-      btnNo.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'no' ? 'bg-slate-800 text-slate-300' : 'text-slate-500 hover:text-slate-400'}`;
+      btnNo.className = `vote-cell-btn flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${value === 'no' ? 'bg-red-500 text-slate-950 shadow-md shadow-red-500/20' : 'text-slate-400 hover:text-white'}`;
 
       resetSaveButtonActive();
     }
@@ -880,7 +921,7 @@
           ? `<div class="mt-3 pt-2.5 border-t border-slate-800/40 space-y-1">
                <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-1.5 flex items-center gap-1"><i class="fa-regular fa-comment text-[10px]"></i>Weekend Notes</p>
                ${optionComments.map(c => {
-                 let dotColor = 'bg-slate-650';
+                 let dotColor = 'bg-red-500';
                  if (c.value === 'yes') dotColor = 'bg-emerald-500';
                  else if (c.value === 'ifbe') dotColor = 'bg-amber-500';
                  return `<div class="text-[10px] text-slate-300 leading-relaxed flex items-start gap-1.5">
@@ -904,15 +945,15 @@
           <div class="h-3 w-full bg-slate-950/80 rounded-full overflow-hidden flex border border-slate-850">
             <div class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-full transition-all duration-500" style="width: ${yesPercent}%" title="Available: ${item.yes}"></div>
             <div class="bg-gradient-to-r from-amber-500 to-amber-400 h-full transition-all duration-500" style="width: ${ifbePercent}%" title="Maybe: ${item.ifbe}"></div>
-            <div class="bg-slate-800 h-full transition-all duration-500" style="width: ${noPercent}%" title="No: ${item.no}"></div>
+            <div class="bg-gradient-to-r from-red-500 to-red-400 h-full transition-all duration-500" style="width: ${noPercent}%" title="No: ${item.no}"></div>
           </div>
           
           <div class="flex items-center justify-between text-[10px] text-slate-400 font-bold mt-2">
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>${item.yes} available</span>
               <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>${item.ifbe} maybe</span>
+              <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>${item.no} unavailable</span>
             </div>
-            <span class="text-slate-500">${item.no} unavailable</span>
           </div>
 
           ${commentsHtml}
@@ -1022,7 +1063,7 @@
             `;
           } else {
             td.innerHTML = `
-              <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-800/20 border border-slate-800 text-slate-600 font-bold relative ${tooltipClasses}" title="Unavailable">
+              <div class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 font-bold relative ${tooltipClasses}" title="Unavailable">
                 <i class="fa-solid fa-xmark text-sm"></i>
                 ${commentIndicator}
                 ${optComment ? `
