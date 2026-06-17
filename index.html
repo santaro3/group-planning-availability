@@ -38,8 +38,10 @@
 <body class="bg-gradient-to-tr from-slate-950 via-indigo-950 to-slate-900 text-slate-100 min-h-screen relative overflow-x-hidden py-12 px-4">
 
   <!-- Ambient Background Glows -->
-  <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none"></div>
-  <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-[150px] pointer-events-none"></div>
+  <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px]"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-[150px]"></div>
+  </div>
 
   <!-- Main Container -->
   <div class="max-w-4xl mx-auto">
@@ -379,7 +381,7 @@
     }
 
     // Init App
-    window.addEventListener("load", checkRoute);
+    checkRoute();
     window.addEventListener("hashchange", checkRoute);
 
     function checkRoute() {
@@ -458,6 +460,9 @@
 
       try {
         const data = await fetchPollData(pollId);
+        if (data && data.poll && data.poll.options) {
+          data.poll.options.sort((a, b) => a.id.localeCompare(b.id));
+        }
         activePollData = data;
         
         // Update browser tab title to match trip
@@ -817,6 +822,9 @@
 
       try {
         const data = await apiSubmitVote(activePollId, cleanName, currentVoterResponses, comment);
+        if (data && data.poll && data.poll.options) {
+          data.poll.options.sort((a, b) => a.id.localeCompare(b.id));
+        }
         activePollData = data;
         
         // Show confirmation toast
@@ -1141,8 +1149,9 @@
         const error = document.getElementById("error-state");
         const poll = document.getElementById("poll-state");
         
-        // If all states are hidden, the ES module script did not run (CORS file:// block)
-        if (landing && landing.classList.contains("hidden") &&
+        // If all states are hidden and protocol is file://, the ES module script did not run (CORS file:// block)
+        if (window.location.protocol === 'file:' &&
+            landing && landing.classList.contains("hidden") &&
             loading && loading.classList.contains("hidden") &&
             error && error.classList.contains("hidden") &&
             poll && poll.classList.contains("hidden")) {

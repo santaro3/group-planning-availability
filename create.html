@@ -38,8 +38,10 @@
 <body class="bg-gradient-to-tr from-slate-950 via-indigo-950 to-slate-900 text-slate-100 min-h-screen relative overflow-x-hidden py-12 px-4">
   
   <!-- Ambient Background Glows -->
-  <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px] pointer-events-none"></div>
-  <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-[150px] pointer-events-none"></div>
+  <div class="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div class="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-500/10 blur-[120px]"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/5 blur-[150px]"></div>
+  </div>
 
   <!-- Header -->
   <header class="max-w-4xl mx-auto text-center mb-10 animate-fade-in">
@@ -471,13 +473,15 @@
       submitBtn.innerHTML = `<i class="fa-solid fa-circle-notch animate-spin text-lg"></i> <span>Creating Poll...</span>`;
 
       const pollId = generatePollId();
-      const selectedOptions = Array.from(selectedWeekends).map(id => {
-        const matching = currentWeekends.find(w => w.id === id);
-        return {
-          id: matching.id,
-          label: matching.formattedDate
-        };
-      });
+      const selectedOptions = Array.from(selectedWeekends)
+        .sort() // Sort the date strings lexicographically to enforce chronological order
+        .map(id => {
+          const matching = currentWeekends.find(w => w.id === id);
+          return {
+            id: matching.id,
+            label: matching.formattedDate
+          };
+        });
 
       try {
         await apiCreatePoll(pollId, title, selectedOptions, participants);
@@ -544,7 +548,7 @@
     window.addEventListener("DOMContentLoaded", () => {
       setTimeout(() => {
         const grid = document.getElementById("weekends-grid");
-        if (grid && grid.children.length === 0) {
+        if (window.location.protocol === 'file:' && grid && grid.children.length === 0) {
           grid.className = "block w-full"; // reset grid column layout for the full warning
           grid.innerHTML = `
             <div class="glass-panel p-6 border-amber-500/20 bg-amber-950/15 rounded-2xl text-amber-300 text-sm space-y-4 max-w-xl mx-auto text-left animate-fade-in">
